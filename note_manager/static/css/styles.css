@@ -1,0 +1,11 @@
+body {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+.note {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: white;
+}

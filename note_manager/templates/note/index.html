@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер записей</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Менеджер записей</h1>
+        <div class="mb-4">
+            <h2>Создать запись</h2>
+            <input type="text" id="note-title" class="form-control" placeholder="Заголовок">
+            <textarea id="note-content" class="form-control mt-2" placeholder="Содержимое"></textarea>
+            <button class="btn btn-primary mt-2" onclick="createNote()">Создать запись</button>
+        </div>
+        <div id="notes"></div>
+    </div>
+
+    <script src="{% static 'js/scripts.js' %}"></script>
+</body>
+</html>
