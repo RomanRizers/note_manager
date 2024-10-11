@@ -1,6 +1,9 @@
 # Note Manager — Веб-приложение на Django
 
 Приложение для создания, просмотра, редактирования и удаления заметок.
+<p align="center">
+  <img src="screenshots/7.png" alt="Note" />
+</p>
 
 ## Описание проекта
 
@@ -20,6 +23,14 @@
 - Простое управление через веб-интерфейс
 - Статическая подача контента
 
+## Теория и структура Django проекта
+
+Django — это высокоуровневый веб-фреймворк на Python, который позволяет разрабатывать веб-приложения быстро и с минимальным количеством кода. Он следует принципу "DRY" (Don't Repeat Yourself) и использует архитектуру MVT (Model-View-Template).
+
+Основные компоненты Django проекта:
+1. Проект — верхний уровень структуры, содержащий настройки и конфигурацию веб-приложения.
+2. Приложения (Apps) — отдельные модули внутри проекта, каждый из которых отвечает за конкретную функциональность и может быть использован в других проектах.
+
 ## Этапы создания
 ## Шаг 1: Настройка проекта Django
 
@@ -28,10 +39,18 @@
 python -m venv venv
 .\env\Scripts\activate.bat
 ```
+<p align="center">
+  <img src="screenshots/1.png" alt="Note" />
+</p>
+
 2. Установим Django и Django REST Framework:
 ```
 pip install django djangorestframework
 ```
+<p align="center">
+  <img src="screenshots/2.png" alt="Note" />
+</p>
+
 3. Создадим новый проект Django:
 ```
 django-admin startproject note_manager
@@ -260,3 +279,113 @@ TEMPLATES = [
 Удаление заметки:
 
 При отправке DELETE-запроса на http://127.0.0.1:8000/api/notes/<id>/, метод NoteDetail.delete() удалит заметку с указанным идентификатором.
+
+<p align="center">
+  <img src="screenshots/5.png" alt="Note" />
+</p>
+<p align="center">
+  <img src="screenshots/6.png" alt="Note" />
+</p>
+
+## Шаг 9: Оптимизация и разделение frontend-части приложения.
+
+Обычно фронтенд часть разделяют на HTML (шаблоны), CSS (стили), JavaScipt (логика поведения). В папке templates хранятся html шаблоны, а в папки static хранятся css и js файлы. Создадим папку static, а в ней style.css и scripts.js.
+
+style.css:
+```
+body {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+.note {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: white;
+}
+```
+scripts.js:
+```
+const apiUrl = 'http://127.0.0.1:8000/api/notes/';
+
+async function fetchNotes() {
+    const response = await fetch(apiUrl);
+    const notes = await response.json();
+    const notesDiv = document.getElementById('notes');
+    notesDiv.innerHTML = '';
+    notes.forEach(note => {
+        notesDiv.innerHTML += `<div class="note">
+            <h3>${note.title}</h3>
+            <p>${note.content}</p>
+            <button class="btn btn-danger" onclick="deleteNote(${note.id})">Удалить</button>
+        </div>`;
+    });
+}
+
+async function createNote() {
+    const title = document.getElementById('note-title').value;
+    const content = document.getElementById('note-content').value;
+
+    await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, content }),
+    });
+
+    document.getElementById('note-title').value = '';
+    document.getElementById('note-content').value = '';
+    fetchNotes();
+}
+
+async function deleteNote(id) {
+    await fetch(`${apiUrl}${id}/`, {
+        method: 'DELETE',
+    });
+    fetchNotes(); 
+}
+
+fetchNotes();
+```
+После этого, в файле settings.py добавим настройку статический файлов:
+```
+STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+```
+Также, немного изменим наш html шаблон для более красивой реализации:
+```
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер записей</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Менеджер записей</h1>
+        <div class="mb-4">
+            <h2>Создать запись</h2>
+            <input type="text" id="note-title" class="form-control" placeholder="Заголовок">
+            <textarea id="note-content" class="form-control mt-2" placeholder="Содержимое"></textarea>
+            <button class="btn btn-primary mt-2" onclick="createNote()">Создать запись</button>
+        </div>
+        <div id="notes"></div>
+    </div>
+
+    <script src="{% static 'js/scripts.js' %}"></script>
+</body>
+</html>
+```
+Ну и наконец, запустим наше приложение и посмотрим на результат:
+<p align="center">
+  <img src="screenshots/7.png" alt="Note" />
+</p>
