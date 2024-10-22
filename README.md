@@ -155,17 +155,7 @@ class NoteDetail(generics.RetrieveUpdateDestroyAPIView):
 
 ### Шаг 5: Настройка URL для REST API
 
-1. Создадим файл notes/urls.py и добавьте следующие маршруты:
-```
-from django.urls import path
-from .views import NoteListCreate, NoteDetail
-
-urlpatterns = [
-    path('notes/', NoteListCreate.as_view(), name='note-list-create'),
-    path('notes/<int:pk>/', NoteDetail.as_view(), name='note-detail'),
-]
-```
-2. Добавим маршруты приложения в основной файл URL проекта (note_manager/urls.py):
+Добавим маршруты приложения в основной файл URL проекта (note_manager/urls.py):
 ```
 from django.contrib import admin
 from django.urls import include, path
