@@ -496,3 +496,177 @@ STATICFILES_DIRS = [
 
     6. **Фронтенд снова обновляет список заметок:**
        - После удаления заметки интерфейс обновляется для отражения изменений.
+
+
+## Deploy:
+
+### Шаг 1:
+
+Для начала нужно скачать Docker Desktop с официального сайте: https://www.docker.com/products/docker-desktop/.
+
+Для корректной работы нужно пройти регистрацию.
+
+### Шаг 2:
+
+Создадим файл зависимостей (если его нет еще):
+
+Вариант 1 (если вы изначально создавали виртуальное окружение для проекта):
+В терминале пропишите: 
+```bash
+pip freeze > requirements.txt
+```
+Вариант 2. Просто создайте файл **`requirements.txt`** в корневой директории проекта
+Выглядеть должен примерно так (если вы не использовали сторонние библиотеки):
+```txt
+Django==5.1.2
+djangorestframework==3.15.2
+```
+
+### Шаг 3:
+
+Создадим файл с именем **`Dockerfile`** в корневой директории проекта:
+
+
+Dockerfile. Это файл для предварительной работы, набор инструкций, который нужен для записи образа. В нем описывается,
+что должно находиться в образе, какие команды, зависимости и процессы он будет содержать.
+
+```dockerfile
+# Используем официальный образ Python
+FROM python:3.11-slim
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем файлы зависимостей
+COPY requirements.txt .
+
+# Устанавливаем зависимости
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем весь проект в контейнер
+COPY . .
+
+# Открываем порт, на котором будет работать сервер
+EXPOSE 8000
+
+# Команда для запуска сервера разработки
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Копируем базу данных SQLite
+COPY db.sqlite3 /note_manager/db.sqlite3
+```
+
+### Шаг 4:
+
+Создадим файл docker-compose.yml в корневой директории проекта:
+```yaml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+```
+
+ 1. `version: '3.8'` - указывает версию Docker Compose файла. Использование версии `3.8` позволяет использовать современные функции Docker Compose.
+
+ 2. `services` - раздел, в котором определяются все сервисы (контейнеры) вашего приложения. В данном случае у нас только один сервис — `web`.
+
+3. `web` - имя сервиса, которое используется для обращения к контейнеру в командной строке и для связывания с другими сервисами.
+
+4. `build: .` - указывает путь к директории с `Dockerfile`. В данном случае указывается текущая директория, где находится `docker-compose.yml`. Docker Compose использует этот путь для сборки образа контейнера.
+
+5. `command: python manage.py runserver 0.0.0.0:8000` - команда, которая будет выполнена при запуске контейнера. В данном случае это запуск Django-сервера разработки, который будет слушать на всех интерфейсах (`0.0.0.0`) и на порту `8000`.
+
+6. `ports: "8000:8000"` - связывает порт 8000 контейнера с портом 8000 хоста. Это позволяет обращаться к приложению на `http://localhost:8000`.
+
+ 7. `volumes: .:/app` - монтирует текущую директорию (где находится `docker-compose.yml`) в директорию `/app` контейнера. Это позволяет синхронизировать файлы между локальной машиной и контейнером
+
+8. `environment: - DEBUG=True` - устанавливает переменную окружения `DEBUG` в значение `True`. Это включает режим отладки в Django, что полезно при разработке, так как выводит подробные сообщения об ошибках.
+
+
+### Шаг 5:
+
+В корневой директории проекта откроем терминал и выполним команду, чтобы построить образ и запустить контейнер:
+```bash
+docker-compose up --build
+```
+Перейдем по адресу http://localhost:8000. Скорее всего, как и у меня, запросы не будут отправлятся к серверу.
+Если мы в браузере откроем режим разработчика (F12), то увидим ошибку:
+```
+Access to fetch at 'http://127.0.0.1:8000/api/notes/' from origin 'http://localhost:8000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.Understand this errorAI
+127.0.0.1:8000/api/notes/:1
+```
+Ошибка связана с CORS (Cross-Origin Resource Sharing) — политикой безопасности веб-браузеров,
+которая ограничивает доступ к ресурсам между разными источниками (домены).
+
+
+В данном случае, ваш фронтенд работает на http://localhost:8000,
+а ваш бэкенд Django (API) работает на http://127.0.0.1:8000, и из-за этого браузер блокирует запросы, так как они происходят с разных источников.
+
+### Решение:
+
+Остановим контейнер.
+
+Установим пакет **`django-cors-headers`**:
+```bash
+pip install django-cors-headers
+```
+
+Добавим **`corsheaders`*** в **`INSTALLED_APPS`** в **`settings.py`**
+
+Это должно выглядеть примерно так:
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders', # вот оно
+    'notes',
+]
+```
+
+Теперь добавим **`CorsMiddleware`** в **`MIDDLEWARE`** (лучше вставить его перед **`django.middleware.common.CommonMiddleware`**)
+
+Должно быть примерно так:
+```python
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # вот оно
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+```
+
+Далее добавим разрешение CORS в наш файл **`settings.py`**:
+```python
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+```
+
+Обновим наш файл **`requirements.txt`**
+
+Должно быть примерно так:
+```txt
+Django==5.1.2
+djangorestframework==3.15.2
+django-cors-headers==3.13.0
+```
+
+Перезапустим наш контейер. После этого http://localhost:8000 должен заработать.
